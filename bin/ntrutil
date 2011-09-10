@@ -28,7 +28,7 @@ cp="${ntrutil_conf}:${cp}"
 # Prepend development output folder to classpath.
 #
 
-cp="${ntrutil_home}/out/production/NtrUtil:${cp}"
+#cp="${ntrutil_home}/out/production/NtrUtil:${cp}"
 
 #
 # Execute the application.
