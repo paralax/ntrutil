@@ -1,4 +1,4 @@
-package com.chadwickboggs.ntrutil;
+package com.tagfoster.ntrutil;
 
 import com.sun.org.apache.xml.internal.security.utils.Base64;
 import joptsimple.OptionParser;
