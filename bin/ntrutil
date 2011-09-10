@@ -1,0 +1,19 @@
+#!/bin/bash
+
+if [ "-g" == "${1}" ]; then
+    debug="-Xdebug -Xrunjdwp:transport=dt_socket,server=y,suspend=y,address=5005"
+    shift 1
+fi
+
+ntrutil_home="$(dirname ${0})"/..
+ntrutil_lib="${ntrutil_home}"/lib
+
+ntrutil_lib_escaped="$(/bin/echo "${ntrutil_lib}" | /usr/bin/sed 's/\//\\\//g')"
+
+cp="${ntrutil_lib}/$(/bin/ls "${ntrutil_lib}" | /usr/bin/tr '\n' ':')"
+cp="$(/bin/echo ${cp} | /usr/bin/sed "s/:/:${ntrutil_lib_escaped}\//g")"
+cp="${cp}:${ntrutil_home}/out/production/NtrUtil"
+
+java ${debug} -cp "${cp}" com.chadwickboggs.ntrutil.NtrUtil $*
+
+exit $?
