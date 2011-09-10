@@ -18,6 +18,6 @@ cp="$(/bin/echo ${cp} | /usr/bin/sed "s/:/:${ntrutil_lib_escaped}\//g")"
 #
 cp="${ntrutil_home}/out/production/NtrUtil:${cp}"
 
-java ${debug} -cp "${cp}" com.chadwickboggs.ntrutil.NtrUtil $*
+java ${debug} -cp "${cp}" com.tagfoster.ntrutil.NtrUtil $*
 
 exit $?
