@@ -12,24 +12,11 @@ import java.io.*;
 
 public class NtrUtil {
 
-    private static final String USAGE_MESSAGE = "\n"
-            + "\t$ ntrutil [options] [<-e|--encrypt> [input filename]] [<-d|--decrypt> [input filename]] "
-            + "[<-o|--output> <output filename>]\n\n"
-            + "\t\tEncrypts or decrypts stdin or an input file using the NTRU algorithm.  The output is written"
-            + " either to stdout or an output file.\n\n"
-            + "\tOptions:\n\n"
-            + "\t\t[-e|--encrypt]\t\t\tEncrypt stdin or an input file.\n"
-            + "\t\t[-d|--decrypt]\t\t\tDecrypt stdin or an input file.\n"
-            + "\t\t[-o|--output]\t\t\tThe name of the file into which the output shall be written.\n"
-            + "\t\t[-bi|--base64input]\t\tThe input is Base64 encoded.\n"
-            + "\t\t[-bo|--base64output]\t\tEncode the output with Base64 encoding.\n"
-            + "\t\t[-v|--verbose]\t\t\tVerbose display processing information.\n"
-            + "\t\t[-?|-h|-u|--help|--usage]\tDisplay usage information.\n";
-
     private static final String USER_STORE_FOLDER = System.getenv( "HOME" ) + "/.ntrutil";
     private static final String PRIVATE_KEY_FILENAME = USER_STORE_FOLDER + "/encryption_private_key";
     private static final String PUBLIC_KEY_FILENAME = USER_STORE_FOLDER + "/encryption_public_key";
     private static final String ENCRYPTION_PARAMETERS_FILENAME = USER_STORE_FOLDER + "/encryption_parameters";
+    public static final String USAGE_TXT_FILENAME = "usage.txt";
 
     private static NtruEncrypt ntru = null;
     private static EncryptionParameters encryptionParameters = null;
@@ -38,12 +25,12 @@ public class NtrUtil {
 
     public static void main( @Nullable String... args ) throws IOException {
         if ( args == null || args.length == 0 ) {
-            System.out.println( USAGE_MESSAGE );
+            System.out.println( usageMessage() );
 
             System.exit( 0 );
         }
 
-        final OptionParser parser = new OptionParser( "e?:?d?:?o:v?h?u??" );
+        final OptionParser parser = new OptionParser( "?e?d?o?:v?h?u?" );
         parser.recognizeAlternativeLongOptions( true );
         parser.accepts( "encrypt" );
         parser.accepts( "decrypt" );
@@ -61,7 +48,7 @@ public class NtrUtil {
 
             if ( options.has( "?" ) || options.has( "h" ) || options.has( "u" )
                     || options.has( "help" ) || options.has( "usage" ) ) {
-                System.out.println( USAGE_MESSAGE );
+                System.out.println( usageMessage() );
 
                 System.exit( 0 );
             }
@@ -71,14 +58,7 @@ public class NtrUtil {
 
             if ( options.has( "e" ) || options.has( "encrypt" ) ) {
 
-                if ( options.hasArgument( "e" ) || options.hasArgument( "encrypt" ) ) {
-                    final String filename = ( String ) (options.hasArgument( "e" ) ? options.valueOf( "e" )
-                            : options.valueOf( "encrypt" ));
-
-                    input = input( filename );
-                } else {
-                    input = input();
-                }
+                input = input();
 
                 if ( options.has( "bi" ) || options.has( "base64input" ) ) {
                     input = Base64.decode( input );
@@ -87,14 +67,7 @@ public class NtrUtil {
                 output = encrypt( input );
             } else if ( options.has( "d" ) || options.has( "decrypt" ) ) {
 
-                if ( options.hasArgument( "d" ) || options.hasArgument( "decrypt" ) ) {
-                    final String filename = ( String ) (options.hasArgument( "d" ) ? options.valueOf( "d" )
-                            : options.valueOf( "decrypt" ));
-
-                    input = input( filename );
-                } else {
-                    input = input();
-                }
+                input = input();
 
                 if ( options.has( "bi" ) || options.has( "base64input" ) ) {
                     input = Base64.decode( input );
@@ -124,19 +97,30 @@ public class NtrUtil {
         System.exit( 0 );
     }
 
+    @NotNull
+    private static String usageMessage() throws IOException {
+        final InputStream inputStream = NtrUtil.class.getClassLoader().getResourceAsStream( USAGE_TXT_FILENAME );
+        final BufferedReader reader = new BufferedReader( new InputStreamReader( inputStream ) );
+        final StringWriter stringWriter = new StringWriter();
+        final BufferedWriter writer = new BufferedWriter( stringWriter );
+
+        String line;
+        while ( (line = reader.readLine()) != null ) {
+            writer.write( line );
+            writer.newLine();
+        }
+
+        writer.flush();
+
+        return stringWriter.toString();
+    }
+
 
     @NotNull
     private static byte[] input() throws IOException {
         return input( System.in );
     }
 
-
-    @NotNull
-    private static byte[] input( @NotNull final String filename ) throws IOException {
-        final FileInputStream inputStream = new FileInputStream( filename );
-
-        return input( inputStream );
-    }
 
 
     @NotNull
@@ -208,8 +192,7 @@ public class NtrUtil {
         if ( file.isFile() && file.canRead() ) {
             FileInputStream inputStream = new FileInputStream( file );
             encryptionParameters = new EncryptionParameters( inputStream );
-        }
-        else {
+        } else {
             encryptionParameters = EncryptionParameters.APR2011_439_FAST;
 
             new File( USER_STORE_FOLDER ).mkdirs();
@@ -236,9 +219,8 @@ public class NtrUtil {
             inputStream = new FileInputStream( publicKeyFile );
             EncryptionPublicKey publicKey = new EncryptionPublicKey( inputStream, encryptionParameters );
 
-            kp = new EncryptionKeyPair(privateKey, publicKey);
-        }
-        else {
+            kp = new EncryptionKeyPair( privateKey, publicKey );
+        } else {
             kp = getNTRU().generateKeyPair();
 
             new File( USER_STORE_FOLDER ).mkdirs();

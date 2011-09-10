@@ -1,0 +1,16 @@
+
+Encrypts or decrypts stdin or an input file using the NTRU algorithm. The
+output is written either to stdout or an output file.
+
+    $ ntrutil [options] [<-o|--output> <output filename>]
+
+    Options
+
+	[-e|--encrypt]		Encrypt stdin.
+	[-d|--decrypt]		Decrypt stdin.
+	[-o|--output]		Write the output to a specified file.
+	[--bi|--base64input]	The input is Base64 encoded.
+	[--bo|--base64output]	Encode the output with Base64 encoding.
+	[-v|--verbose]		Verbose display processing information.
+	[-h|--help]             Display usage information.
+	[-?|-u|--usage]         Display usage information.
