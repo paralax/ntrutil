@@ -16,7 +16,7 @@ cp="$(/bin/echo ${cp} | /usr/bin/sed "s/:/:${ntrutil_lib_escaped}\//g")"
 #
 # Prepend development output folder to classpath.
 #
-cp="${ntrutil_home}/out/production/NtrUtil:${cp}"
+#cp="${ntrutil_home}/out/production/NtrUtil:${cp}"
 
 java ${debug} -cp "${cp}" com.tagfoster.ntrutil.NtrUtil $*
 
