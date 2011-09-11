@@ -22,12 +22,12 @@ public class NtrUtil {
     private static final PrintStream STDOUT = System.out;
     private static final PrintStream STDERR = System.err;
     private static final InputStreamReader STDIN_READER = new InputStreamReader( STDIN );
+    private static final int CHUNK_LENGTH = 604;
 
     private static NtruEncrypt ntru = null;
     private static EncryptionParameters encryptionParameters = null;
     private static EncryptionKeyPair kp = null;
     private static int maxMessageLength = 64;
-    public static final int CHUNK_LENGTH = 640;
 
 
     public static void main( @Nullable String... args ) throws IOException {
@@ -177,7 +177,7 @@ public class NtrUtil {
             return new byte[0];
         }
 
-        int totalRead = numRead;
+        int totalRead = 0;
 
         while ( true ) {
             if ( numRead < 0 ) {
@@ -206,14 +206,14 @@ public class NtrUtil {
     @NotNull
     private static byte[] inputChunk() throws IOException {
         final ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
-        byte[] value = new byte[NtrUtil.maxMessageLength];
+        byte[] value = new byte[NtrUtil.CHUNK_LENGTH];
         int numRead;
 
         if ( (numRead = NtrUtil.STDIN.read( value )) < 0 ) {
             return new byte[0];
         }
 
-        int totalRead = numRead;
+        int totalRead = 0;
 
         while ( true ) {
             if ( numRead < 0 ) {
@@ -225,7 +225,7 @@ public class NtrUtil {
                 outputStream.write( value, 0, numRead );
             }
 
-            if ( totalRead <= CHUNK_LENGTH ) {
+            if ( totalRead < NtrUtil.CHUNK_LENGTH ) {
                 numRead = NtrUtil.STDIN.read( value );
             }
             else {
