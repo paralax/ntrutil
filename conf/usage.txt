@@ -1,8 +1,14 @@
 
-Encrypts or decrypts stdin or an input file using the NTRU algorithm. The
-output is written either to stdout or an output file.
+DESCRIPTION:
+
+    Encrypts or decrypts stdin or an input file using the NTRU algorithm. The
+    output is written either to stdout or an output file.
+
+USAGE:
 
     $ ntrutil [options] [<-o|--output> <output filename>]
+
+NOTE: When encrypting from stdin press CTRL-D twice to end the stream.
 
     Options
 

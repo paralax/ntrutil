@@ -16,86 +16,137 @@ public class NtrUtil {
     private static final String PRIVATE_KEY_FILENAME = USER_STORE_FOLDER + "/encryption_private_key";
     private static final String PUBLIC_KEY_FILENAME = USER_STORE_FOLDER + "/encryption_public_key";
     private static final String ENCRYPTION_PARAMETERS_FILENAME = USER_STORE_FOLDER + "/encryption_parameters";
-    public static final String USAGE_TXT_FILENAME = "usage.txt";
+    private static final String USAGE_TXT_FILENAME = "usage.txt";
+
+    private static final InputStream STDIN = System.in;
+    private static final PrintStream STDOUT = System.out;
+    private static final PrintStream STDERR = System.err;
+    private static final InputStreamReader STDIN_READER = new InputStreamReader( STDIN );
 
     private static NtruEncrypt ntru = null;
     private static EncryptionParameters encryptionParameters = null;
     private static EncryptionKeyPair kp = null;
+    private static int maxMessageLength = 64;
+    public static final int CHUNK_LENGTH = 640;
 
 
     public static void main( @Nullable String... args ) throws IOException {
         if ( args == null || args.length == 0 ) {
-            System.out.println( usageMessage() );
+            NtrUtil.STDOUT.println( usageMessage() );
 
-            System.exit( 0 );
+            exit( 0 );
         }
 
-        final OptionParser parser = new OptionParser( "?e?d?o?:v?h?u?" );
-        parser.recognizeAlternativeLongOptions( true );
-        parser.accepts( "encrypt" );
-        parser.accepts( "decrypt" );
-        parser.accepts( "output" );
-        parser.accepts( "bi" );
-        parser.accepts( "base64input" );
-        parser.accepts( "bo" );
-        parser.accepts( "base64output" );
-        parser.accepts( "verbose" );
-        parser.accepts( "help" );
-        parser.accepts( "usage" );
-
         try {
-            final OptionSet options = parser.parse( args );
+
+            final OptionSet options = getCliParser().parse( args );
 
             if ( options.has( "?" ) || options.has( "h" ) || options.has( "u" )
                     || options.has( "help" ) || options.has( "usage" ) ) {
-                System.out.println( usageMessage() );
+                NtrUtil.STDOUT.println( usageMessage() );
 
-                System.exit( 0 );
+                exit( 0 );
             }
 
-            byte[] input;
+            String inputString = "";
+            byte[] input = new byte[0];
             byte[] output = new byte[0];
 
-            if ( options.has( "e" ) || options.has( "encrypt" ) ) {
+            boolean didRead = false;
 
-                input = input();
+            while ( true ) {
 
-                if ( options.has( "bi" ) || options.has( "base64input" ) ) {
-                    input = Base64.decode( input );
+                //
+                // Read one chunk of input.
+                //
+
+                if ( options.has( "e" ) || options.has( "encrypt" ) ) {
+                    input = input();
+                } else if ( options.has( "d" ) || options.has( "decrypt" ) ) {
+                    if ( options.has( "bi" ) || options.has( "base64input" ) ) {
+                        inputString = inputString();
+                    } else {
+                        input = inputChunk();
+                    }
                 }
 
-                output = encrypt( input );
-            } else if ( options.has( "d" ) || options.has( "decrypt" ) ) {
-
-                input = input();
-
-                if ( options.has( "bi" ) || options.has( "base64input" ) ) {
-                    input = Base64.decode( input );
+                if ( input.length == 0 && inputString.length() == 0 ) {
+                    if ( didRead ) {
+                        exit( 0 );
+                    } else {
+                        exit( 2 );
+                    }
+                } else {
+                    didRead = true;
                 }
 
-                output = decrypt( input );
+                if ( options.has( "bi" ) || options.has( "base64input" ) ) {
+                    input = Base64.decode( inputString );
+                }
+
+                //
+                // Encrypt or decrypt the chunk.
+                //
+
+                if ( options.has( "e" ) || options.has( "encrypt" ) ) {
+                    output = encrypt( input );
+                } else if ( options.has( "d" ) || options.has( "decrypt" ) ) {
+                    output = decrypt( input );
+                }
+
+                //
+                // Output the processed chunk.
+                //
+
+                if ( options.has( "bo" ) || options.has( "base64output" ) ) {
+                    output = Base64.encode( output ).getBytes();
+                }
+
+                if ( !options.has( "o" ) && !options.has( "output" ) ) {
+                    NtrUtil.STDOUT.print( new String( output ) );
+
+                    if ( options.has( "bo" ) || options.has( "base64output" ) ) {
+                        NtrUtil.STDOUT.println();
+                    }
+                } else {
+                    final String filename = ( String ) (options.hasArgument( "o" ) ? options.valueOf( "o" )
+                            : options.valueOf( "output" ));
+
+                    output( output, filename );
+                }
+
+                input = new byte[0];
+                inputString = "";
+
             }
 
-            if ( options.has( "bo" ) || options.has( "base64output" ) ) {
-                output = Base64.encode( output ).getBytes();
-            }
-
-            if ( !options.has( "o" ) && !options.has( "output" ) ) {
-                System.out.println( new String( output ) );
-            } else {
-                final String filename = ( String ) (options.hasArgument( "o" ) ? options.valueOf( "o" )
-                        : options.valueOf( "output" ));
-
-                output( output, filename );
-            }
         } catch ( Throwable t ) {
-            System.err.println( t.getMessage() );
-
-            System.exit( 1 );
+            exit( t );
         }
 
-        System.exit( 0 );
+        exit( 0 );
     }
+
+
+    private static void exit( final Throwable t ) throws IOException {
+        t.printStackTrace( NtrUtil.STDERR );
+        NtrUtil.STDERR.flush();
+
+        exit( 1 );
+    }
+
+
+    private static void exit( final int status ) throws IOException {
+        if ( status != 0 ) {
+            NtrUtil.STDERR.println( usageMessage() );
+        }
+
+        NtrUtil.STDOUT.flush();
+        NtrUtil.STDERR.flush();
+
+        System.exit( status );
+    }
+
 
     @NotNull
     private static String usageMessage() throws IOException {
@@ -118,23 +169,103 @@ public class NtrUtil {
 
     @NotNull
     private static byte[] input() throws IOException {
-        return input( System.in );
-    }
-
-
-
-    @NotNull
-    private static byte[] input( @NotNull final InputStream inputStream ) throws IOException {
         final ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
-        byte[] value = new byte[1];
+        byte[] value = new byte[NtrUtil.maxMessageLength];
         int numRead;
-        while ( (numRead = inputStream.read( value )) >= 0 ) {
+
+        if ( (numRead = NtrUtil.STDIN.read( value )) < 0 ) {
+            return new byte[0];
+        }
+
+        int totalRead = numRead;
+
+        while ( true ) {
+            if ( numRead < 0 ) {
+                break;
+            }
+
             if ( numRead > 0 ) {
-                outputStream.write( value );
+                totalRead += numRead;
+                outputStream.write( value, 0, numRead );
+            }
+
+            if ( totalRead < NtrUtil.maxMessageLength ) {
+                numRead = NtrUtil.STDIN.read( value );
+            }
+            else {
+                break;
             }
         }
 
+        outputStream.close();
+
         return outputStream.toByteArray();
+    }
+
+
+    @NotNull
+    private static byte[] inputChunk() throws IOException {
+        final ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+        byte[] value = new byte[NtrUtil.maxMessageLength];
+        int numRead;
+
+        if ( (numRead = NtrUtil.STDIN.read( value )) < 0 ) {
+            return new byte[0];
+        }
+
+        int totalRead = numRead;
+
+        while ( true ) {
+            if ( numRead < 0 ) {
+                break;
+            }
+
+            if ( numRead > 0 ) {
+                totalRead += numRead;
+                outputStream.write( value, 0, numRead );
+            }
+
+            if ( totalRead <= CHUNK_LENGTH ) {
+                numRead = NtrUtil.STDIN.read( value );
+            }
+            else {
+                break;
+            }
+        }
+
+        outputStream.close();
+
+        return outputStream.toByteArray();
+    }
+
+
+    @NotNull
+    private static String inputString() throws IOException {
+        final StringWriter stringWriter = new StringWriter();
+        final BufferedWriter writer = new BufferedWriter( stringWriter );
+
+        int numRead;
+        char secondToLastCharRead = ' ';
+        char lastCharRead = ' ';
+        char[] charRead = new char[1];
+        while ( (numRead = NtrUtil.STDIN_READER.read( charRead )) >= 0 ) {
+            if ( numRead == 0 ) {
+                continue;
+            }
+
+            writer.append( charRead[0] );
+
+            if ( secondToLastCharRead == '=' && lastCharRead == '=' && charRead[0] == '\n' ) {
+                break;
+            }
+
+            secondToLastCharRead = lastCharRead;
+            lastCharRead = charRead[0];
+        }
+
+        writer.flush();
+
+        return stringWriter.toString();
     }
 
 
@@ -200,6 +331,8 @@ public class NtrUtil {
             final FileOutputStream outputStream = new FileOutputStream( ENCRYPTION_PARAMETERS_FILENAME );
             encryptionParameters.writeTo( outputStream );
         }
+
+        NtrUtil.maxMessageLength = encryptionParameters.getMaxMessageLength();
     }
 
     private static void loadNTRU() throws IOException {
@@ -233,4 +366,21 @@ public class NtrUtil {
         }
     }
 
+    public static OptionParser getCliParser() {
+        final OptionParser parser = new OptionParser( "?e?d?o?:v?h?u?" );
+
+        parser.recognizeAlternativeLongOptions( true );
+        parser.accepts( "encrypt" );
+        parser.accepts( "decrypt" );
+        parser.accepts( "output" );
+        parser.accepts( "bi" );
+        parser.accepts( "base64input" );
+        parser.accepts( "bo" );
+        parser.accepts( "base64output" );
+        parser.accepts( "verbose" );
+        parser.accepts( "help" );
+        parser.accepts( "usage" );
+
+        return parser;
+    }
 }
