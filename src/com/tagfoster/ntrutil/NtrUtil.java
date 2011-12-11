@@ -367,12 +367,11 @@ public class NtrUtil {
     }
 
     public static OptionParser getCliParser() {
-        final OptionParser parser = new OptionParser( "?e?d?o?:v?h?u?" );
+        final OptionParser parser = new OptionParser( "?e?d?o:?v?h?u?" );
 
         parser.recognizeAlternativeLongOptions( true );
         parser.accepts( "encrypt" );
         parser.accepts( "decrypt" );
-        parser.accepts( "output" );
         parser.accepts( "bi" );
         parser.accepts( "base64input" );
         parser.accepts( "bo" );

@@ -8,6 +8,7 @@ fi
 ntrutil_home="$(dirname ${0})"/..
 ntrutil_conf="${ntrutil_home}"/conf
 ntrutil_lib="${ntrutil_home}"/lib
+ntrutil_out="${ntrutil_home}"/out/production/NtrUtil
 
 ntrutil_lib_escaped="$(/bin/echo "${ntrutil_lib}" | /usr/bin/sed 's/\//\\\//g')"
 
@@ -17,6 +18,7 @@ ntrutil_lib_escaped="$(/bin/echo "${ntrutil_lib}" | /usr/bin/sed 's/\//\\\//g')"
 
 cp="${ntrutil_lib}/$(/bin/ls "${ntrutil_lib}" | /usr/bin/tr '\n' ':')"
 cp="$(/bin/echo ${cp} | /usr/bin/sed "s/:/:${ntrutil_lib_escaped}\//g")"
+cp="${ntrutil_out}:${cp}"
 
 #
 # Prepend configuration folder to classpath.
