@@ -347,10 +347,10 @@ public class NtrUtil {
         if ( privateKeyFile.isFile() && privateKeyFile.canRead()
                 && publicKeyFile.isFile() && publicKeyFile.canRead() ) {
             FileInputStream inputStream = new FileInputStream( privateKeyFile );
-            EncryptionPrivateKey privateKey = new EncryptionPrivateKey( inputStream, encryptionParameters );
+            EncryptionPrivateKey privateKey = new EncryptionPrivateKey( inputStream );
 
             inputStream = new FileInputStream( publicKeyFile );
-            EncryptionPublicKey publicKey = new EncryptionPublicKey( inputStream, encryptionParameters );
+            EncryptionPublicKey publicKey = new EncryptionPublicKey( inputStream );
 
             kp = new EncryptionKeyPair( privateKey, publicKey );
         } else {
