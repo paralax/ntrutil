@@ -1,0 +1,1 @@
+A command line interface for encryption and decryption using the NTRU cryptography algorithm.  "NTRU is a public key cryptosystem that is considered unbreakable even with quantum computers. Commonly used cryptosystems like RSA or ECC, on the other hand, will be broken if and when quantum computers become available."-[NTRU](http://ntru.sourceforge.net)
